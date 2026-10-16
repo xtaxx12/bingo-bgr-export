@@ -1,0 +1,8 @@
+{
+  "name": "bingo-bgr-export",
+  "private": true,
+  "description": "Bingo BGR Export: tablero de bingo 3D en un solo archivo (index.html), sin dependencias.",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

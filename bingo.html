@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Bingo Virtual Interactivo</title>
+<style>
+  * { box-sizing:border-box; }
+
+  body {
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:radial-gradient(circle at top, #123a6b, #061224);
+    color:#fff;
+    padding:20px;
+  }
+
+  h1 {
+    text-align:center;
+    font-size:42px;
+    margin:0 0 20px;
+    text-shadow:0 0 18px #ffc107;
+  }
+
+  .panel {
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18);
+    padding:18px;
+    border-radius:16px;
+    text-align:center;
+    margin-bottom:20px;
+    backdrop-filter:blur(6px);
+  }
+
+  input, select {
+    font-size:18px;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    margin:5px;
+  }
+
+  button {
+    font-size:19px;
+    padding:12px 22px;
+    margin:6px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(180deg,#ffd54f,#ffb300);
+    color:#222;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.2s;
+  }
+
+  button:hover { transform:scale(1.05); }
+  button:active { transform:scale(.97); }
+
+  .rojo { background:linear-gradient(180deg,#ff6b6b,#d32f2f); color:#fff; }
+  .verde { background:linear-gradient(180deg,#66bb6a,#2e7d32); color:#fff; }
+
+  .escenario {
+    display:flex;
+    flex-wrap:wrap;
+    gap:25px;
+    justify-content:center;
+    align-items:flex-start;
+  }
+
+  .bola-grande {
+    width:220px;
+    height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff8dc, #ffc107 55%, #b26a00);
+    color:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:64px;
+    font-weight:bold;
+    box-shadow:0 18px 45px rgba(0,0,0,.55);
+    animation:aparecer .45s ease;
+  }
+
+  @keyframes aparecer {
+    from { transform:scale(.3) rotate(-180deg); opacity:0; }
+    to { transform:scale(1) rotate(0); opacity:1; }
+  }
+
+  .info {
+    text-align:center;
+    font-size:22px;
+    margin-top:10px;
+  }
+
+  .tablero {
+    display:grid;
+    grid-template-columns:repeat(15,1fr);
+    gap:6px;
+    max-width:900px;
+    flex:1;
+  }
+
+  .numero {
+    background:#173a68;
+    border-radius:8px;
+    padding:10px 0;
+    text-align:center;
+    font-weight:bold;
+    font-size:18px;
+    transition:.25s;
+  }
+
+  .marcado {
+    background:#ffc107;
+    color:#000;
+    transform:scale(1.12);
+    box-shadow:0 0 18px #ffc107;
+  }
+
+  .cartones {
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    justify-content:center;
+    margin-top:25px;
+  }
+
+  .carton {
+    background:#fff;
+    color:#000;
+    border-radius:14px;
+    padding:12px;
+    border:4px solid #1565c0;
+    transition:.3s;
+  }
+
+  .carton.ganador {
+    border-color:#e53935;
+    box-shadow:0 0 30px #e53935;
+    transform:scale(1.03);
+  }
+
+  table { border-collapse:collapse; }
+
+  th, td {
+    width:46px;
+    height:46px;
+    border:1px solid #999;
+    text-align:center;
+    font-size:17px;
+    font-weight:bold;
+  }
+
+  th { background:#1565c0; color:#fff; }
+  td.libre { background:#ffe082; }
+
+  td.marcada {
+    background:#43a047;
+    color:#fff;
+    animation:marca .35s ease;
+  }
+
+  @keyframes marca {
+    0% { transform:scale(.4); }
+    60% { transform:scale(1.25); }
+    100% { transform:scale(1); }
+  }
+
+  .historial {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:6px;
+    margin-top:15px;
+  }
+
+  .bola {
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#ffc107;
+    color:#000;
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    animation:aparecer .3s ease;
+  }
+
+  .mensaje {
+    text-align:center;
+    font-size:34px;
+    font-weight:bold;
+    min-height:45px;
+    margin:10px 0;
+    color:#ffd54f;
+    text-shadow:0 0 15px #ff9800;
+  }
+
+  .confeti {
+    position:fixed;
+    top:-20px;
+    width:12px;
+    height:18px;
+    z-index:999;
+    animation:caer 3s linear forwards;
+  }
+
+  @keyframes caer {
+    to { transform:translateY(110vh) rotate(720deg); opacity:.2; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎲 BINGO VIRTUAL</h1>
+
+<div class="panel">
+  <label>Jugadores:</label>
+  <input type="number" id="jugadores" value="4" min="1" max="10">
+
+  <label>Velocidad:</label>
+  <select id="velocidad">
+    <option value="4000">Lenta</option>
+    <option value="2500" selected>Normal</option>
+    <option value="1200">Rápida</option>
+  </select>
+
+  <br>
+
+  <button class="verde" onclick="iniciar()">Iniciar juego</button>
+  <button onclick="cantar()">Cantar bola</button>
+  <button onclick="automatico()">Automático</button>
+  <button onclick="detener()">Detener</button>
+  <button class="rojo" onclick="reiniciar()">Reiniciar</button>
+</div>
+
+<div class="mensaje" id="mensaje"></div>
+
+<div class="escenario">
+  <div>
+    <div class="bola-grande" id="bolaGrande">?</div>
+    <div class="info" id="restantes">Bolas restantes: 75</div>
+  </div>
+
+  <div class="tablero" id="tablero"></div>
+</div>
+
+<div class="historial" id="historial"></div>
+
+<div class="cartones" id="cartones"></div>
+
+<script>
+const rangos = {
+  B:[1,15],
+  I:[16,30],
+  N:[31,45],
+  G:[46,60],
+  O:[61,75]
+};
+
+let bolas = [];
+let cartones = [];
+let temporizador = null;
+
+function iniciar() {
+  const cantidad = parseInt(document.getElementById("jugadores").value);
+  if (isNaN(cantidad) || cantidad < 1) return;
+
+  bolas = Array.from({length:75}, (_, i) => i + 1);
+  cartones = Array.from({length:cantidad}, crearCarton);
+
+  detener();
+  document.getElementById("mensaje").textContent = "";
+  document.getElementById("historial").innerHTML = "";
+  document.getElementById("bolaGrande").textContent = "?";
+
+  crearTablero();
+  dibujarCartones();
+  actualizarRestantes();
+}
+
+function crearCarton() {
+  const carton = [];
+
+  Object.values(rangos).forEach(rango => {
+    const columna = [];
+
+    while (columna.length < 5) {
+      const numero = Math.floor(Math.random() * (rango[1] - rango[0] + 1)) + rango[0];
+      if (!columna.includes(numero)) columna.push(numero);
+    }
+
+    carton.push(columna);
+  });
+
+  carton[2][2] = "LIBRE";
+  return carton;
+}
+
+function crearTablero() {
+  const tablero = document.getElementById("tablero");
+  tablero.innerHTML = "";
+
+  for (let n = 1; n <= 75; n++) {
+    const div = document.createElement("div");
+    div.className = "numero";
+    div.id = "t" + n;
+    div.textContent = n;
+    tablero.appendChild(div);
+  }
+}
+
+function dibujarCartones() {
+  const contenedor = document.getElementById("cartones");
+  contenedor.innerHTML = "";
+
+  cartones.forEach((carton, i) => {
+    const div = document.createElement("div");
+    div.className = "carton";
+    div.id = "carton" + i;
+
+    let html = `<h3 style="text-align:center;margin:5px 0">Jugador ${i + 1}</h3><table><tr>`;
+
+    Object.keys(rangos).forEach(letra => html += `<th>${letra}</th>`);
+    html += "</tr>";
+
+    for (let f = 0; f < 5; f++) {
+      html += "<tr>";
+
+      for (let c = 0; c < 5; c++) {
+        const valor = carton[c][f];
+        const clase = valor === "LIBRE" ? "libre" : "";
+        html += `<td class="${clase}" id="c${i}-${f}-${c}">${valor}</td>`;
+      }
+
+      html += "</tr>";
+    }
+
+    html += "</table>";
+    div.innerHTML = html;
+    contenedor.appendChild(div);
+  });
+}
+
+function cantar() {
+  if (!bolas.length) {
+    mostrarMensaje("Ya no quedan bolas por cantar.", "#ff8a65");
+    return;
+  }
+
+  const posicion = Math.floor(Math.random() * bolas.length);
+  const numero = bolas.splice(posicion, 1)[0];
+  const letra = numero <= 15 ? "B" : numero <= 30 ? "I" : numero <= 45 ? "N" : numero <= 60 ? "G" : "O";
+
+  const bola = document.getElementById("bolaGrande");
+  bola.textContent = `${letra} ${numero}`;
+  bola.style.animation = "none";
+  void bola.offsetWidth;
+  bola.style.animation = "aparecer .45s ease";
+
+  document.getElementById("t" + numero).classList.add("marcado");
+
+  document.getElementById("historial").innerHTML +=
+    `<div class="bola">${letra}-${numero}</div>`;
+
+  marcarCartones(numero);
+  revisarPremios();
+  actualizarRestantes();
+  sonido(numero);
+}
+
+function marcarCartones(numero) {
+  cartones.forEach((carton, i) => {
+    carton.forEach((columna, c) => {
+      columna.forEach((valor, f) => {
+        if (valor === numero) {
+          document.getElementById(`c${i}-${f}-${c}`).classList.add("marcada");
+        }
+      });
+    });
+  });
+}
+
+function revisarPremios() {
+  cartones.forEach((carton, i) => {
+    if (hayLinea(i)) {
+      document.getElementById("carton" + i).classList.add("ganador");
+      mostrarMensaje(`🎉 ¡El Jugador ${i + 1} hizo LÍNEA!`, "#ffd54f");
+      confeti();
+      sonidoVictoria();
+    }
+
+    if (hayBingo(i)) {
+      document.getElementById("carton" + i).classList.add("ganador");
+      mostrarMensaje(`🏆 ¡BINGO! Ganó el Jugador ${i + 1}`, "#ff5252");
+      confeti(80);
+      sonidoVictoria();
+      detener();
+    }
+  });
+}
+
+function hayLinea(i) {
+  const marcada = (f, c) =>
+    cartones[i][c][f] === "LIBRE" ||
+    document.getElementById(`c${i}-${f}-${c}`).classList.contains("marcada");
+
+  for (let f = 0; f < 5; f++) {
+    if ([0,1,2,3,4].every(c => marcada(f, c))) return true;
+  }
+
+  for (let c = 0; c < 5; c++) {
+    if ([0,1,2,3,4].every(f => marcada(f, c))) return true;
+  }
+
+  if ([0,1,2,3,4].every(i2 => marcada(i2, i2))) return true;
+  if ([0,1,2,3,4].every(i2 => marcada(i2, 4 - i2))) return true;
+
+  return false;
+}
+
+function hayBingo(i) {
+  for (let f = 0; f < 5; f++) {
+    for (let c = 0; c < 5; c++) {
+      if (cartones[i][c][f] === "LIBRE") continue;
+
+      if (!document.getElementById(`c${i}-${f}-${c}`).classList.contains("marcada")) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function automatico() {
+  detener();
+
+  const velocidad = parseInt(document.getElementById("velocidad").value);
+
+  temporizador = setInterval(() => {
+    if (!bolas.length) {
+      detener();
+      return;
+    }
+    cantar();
+  }, velocidad);
+}
+
+function detener() {
+  if (temporizador) {
+    clearInterval(temporizador);
+    temporizador = null;
+  }
+}
+
+function reiniciar() {
+  detener();
+  bolas = [];
+  cartones = [];
+
+  document.getElementById("mensaje").textContent = "";
+  document.getElementById("historial").innerHTML = "";
+  document.getElementById("tablero").innerHTML = "";
+  document.getElementById("cartones").innerHTML = "";
+  document.getElementById("bolaGrande").textContent = "?";
+  document.getElementById("restantes").textContent = "Bolas restantes: 75";
+}
+
+function actualizarRestantes() {
+  document.getElementById("restantes").textContent =
+    `Bolas restantes: ${bolas.length}`;
+}
+
+function mostrarMensaje(texto, color) {
+  const mensaje = document.getElementById("mensaje");
+  mensaje.textContent = texto;
+  mensaje.style.color = color;
+}
+
+function confeti(cantidad = 40) {
+  const colores = ["#ffc107","#4fc3f7","#66bb6a","#ef5350","#ab47bc"];
+
+  for (let i = 0; i < cantidad; i++) {
+    const div = document.createElement("div");
+    div.className = "confeti";
+    div.style.left = Math.random() * 100 + "vw";
+    div.style.background = colores[Math.floor(Math.random() * colores.length)];
+    div.style.animationDelay = Math.random() * .8 + "s";
+    document.body.appendChild(div);
+
+    setTimeout(() => div.remove(), 3500);
+  }
+}
+
+function sonido(numero) {
+  const contexto = new (window.AudioContext || window.webkitAudioContext)();
+  const oscilador = contexto.createOscillator();
+  const ganancia = contexto.createGain();
+
+  oscilador.type = "sine";
+  oscilador.frequency.value = 400 + numero;
+  ganancia.gain.value = .08;
+
+  oscilador.connect(ganancia);
+  ganancia.connect(contexto.destination);
+
+  oscilador.start();
+  oscilador.stop(contexto.currentTime + .18);
+}
+
+function sonidoVictoria() {
+  const contexto = new (window.AudioContext || window.webkitAudioContext)();
+  const notas = [523, 659, 784, 1046];
+
+  notas.forEach((nota, i) => {
+    const oscilador = contexto.createOscillator();
+    const ganancia = contexto.createGain();
+
+    oscilador.type = "triangle";
+    oscilador.frequency.value = nota;
+    ganancia.gain.value = .12;
+
+    oscilador.connect(ganancia);
+    ganancia.connect(contexto.destination);
+
+    oscilador.start(contexto.currentTime + i * .12);
+    oscilador.stop(contexto.currentTime + i * .12 + .25);
+  });
+}
+</script>
+
+</body>
+</html>
